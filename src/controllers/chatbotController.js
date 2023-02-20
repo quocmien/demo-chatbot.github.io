@@ -125,10 +125,8 @@ function handlePostback(sender_psid, received_postback) {
 function callSendAPI(sender_psid, response) {
   // Construct the message body
   let request_body = {
-    recipient: {
-      id: sender_psid,
-    },
-    message: response,
+    "get_started": {"payload": "GET_STARTED"},
+    "whitelisted_domains": ["https://demo-chatbot-7ws5.onrender.com/"]
   };
 
   // Send the HTTP request to the Messenger Platform

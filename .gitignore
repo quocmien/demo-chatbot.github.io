@@ -17,5 +17,5 @@ yarn-debug.log*
 yarn-error.log*
 .albertignore
 *.map
-pakeage-lock.json
+package-lock.json
 

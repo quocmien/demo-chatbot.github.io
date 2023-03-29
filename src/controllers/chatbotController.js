@@ -1,7 +1,7 @@
 require('dotenv').config();
-const { PythonShell } = require('python-shell');
-import request from 'request';
 
+import request from 'request';
+const fetch = require('node-fetch');
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 
@@ -17,15 +17,7 @@ openai.api_key = process.env.OPENAI_API_KEY;
 const prompt = 'Enter your prompt: ';
 
 // Run the Python script and get the result
-PythonShell.run(
-  '../main.py',
-  { pythonPath: 'python', args: [prompt] },
-  function (err, results) {
-    if (err) throw err;
-    const message = results[0].trim();
-    console.log(message); // Print the generated response
-  }
-);
+
 
 let postWebhook = (req, res) => {
   // Parse the request body from the POST
@@ -78,7 +70,7 @@ let getWebhook = (req, res) => {
   }
 };
 // Handles messages events
-function handleMessage(sender_psid, received_message) {
+async function handleMessage(sender_psid, received_message) {
   // Checks if the message contains text
   if (received_message.text) {
     // Get the user's message
@@ -87,21 +79,35 @@ function handleMessage(sender_psid, received_message) {
     // Define your prompt for the OpenAI API with the user's message
     const prompt = `User: ${userMessage}\n${' '.repeat('User: '.length)}`;
 
-
-    // Run the Python script and get the result
-    PythonShell.run('../main.py', { pythonPath: 'python', args: [prompt] }, function (err, results) {
-      if (err) throw err;
-      const message = results[0].trim();
-      console.log(message); // Print the generated response
-
-      // Create the payload for the response message
-      const response = {
-        text: message,
-      };
-
-      // Send the response message
-      callSendAPI(sender_psid, response);
+    // Send a request to the OpenAI API
+    const result = await fetch('https://api.openai.com/v1/engines/davinci-codex/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        prompt: prompt,
+        max_tokens: 100,
+        temperature: 0.7,
+        n: 1,
+        stop: '\n'
+      })
     });
+
+    // Get the response from the OpenAI API
+    const data = await result.json();
+    const message = data.choices[0].text.trim();
+
+    console.log(message); // Print the generated response
+
+    // Create the payload for the response message
+    const response = {
+      text: message,
+    };
+
+    // Send the response message
+    callSendAPI(sender_psid, response);
   } 
 }
 
@@ -126,7 +132,7 @@ function handlePostback(sender_psid, received_postback) {
 // Sends response messages via the Send API
 function callSendAPI(sender_psid, response) {
   // Construct the message body
-   let request_body = {
+  let request_body = {
     recipient: {
       id: sender_psid,
     },
@@ -136,8 +142,8 @@ function callSendAPI(sender_psid, response) {
   // Send the HTTP request to the Messenger Platform
   request(
     {
-      uri: "https://graph.facebook.com/v2.6/me/messages",
-      qs: { access_token: process.env.PAGE_ACCESS_TOKEN },
+      uri: "https://graph.facebook.com/v12.0/me/messages",
+      qs: { access_token: PAGE_ACCESS_TOKEN },
       method: "POST",
       json: request_body,
     },

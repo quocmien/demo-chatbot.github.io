@@ -1,30 +1,38 @@
-require("dotenv").config();
+require('dotenv').config();
 const { PythonShell } = require('python-shell');
-import request from "request";
+import request from 'request';
+
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
+
 let getHomePage = (req, res) => {
-  return res.send("Xin Chao");
+  return res.send('Xin Chao');
 };
+
 // Set up your OpenAI API key
 const openai = require('openai');
-openai.api_key = config.OPENAI_API_KEY;
+openai.api_key = process.env.OPENAI_API_KEY;
 
 // Define your prompt for the OpenAI API
 const prompt = 'Enter your prompt: ';
 
 // Run the Python script and get the result
-PythonShell.run('../main.py', { pythonPath: 'python', args: [prompt] }, function (err, results) {
-  if (err) throw err;
-  const message = results[0].trim();
-  console.log(message); // Print the generated response
-});
+PythonShell.run(
+  '../main.py',
+  { pythonPath: 'python', args: [prompt] },
+  function (err, results) {
+    if (err) throw err;
+    const message = results[0].trim();
+    console.log(message); // Print the generated response
+  }
+);
+
 let postWebhook = (req, res) => {
   // Parse the request body from the POST
   let body = req.body;
 
   // Check the webhook event is from a Page subscription
-  if (body.object === "page") {
+  if (body.object === 'page') {
     // Iterate over each entry - there may be multiple if batched
     body.entry.forEach(function (entry) {
       // Gets the body of the webhook event
@@ -33,7 +41,7 @@ let postWebhook = (req, res) => {
 
       // Get the sender PSID
       let sender_psid = webhook_event.sender.id;
-      console.log("Sender PSID: " + sender_psid);
+      console.log('Sender PSID: ' + sender_psid);
 
       // Check if the event is a message or postback and
       // pass the event to the appropriate handler function
@@ -45,28 +53,27 @@ let postWebhook = (req, res) => {
     });
 
     // Return a '200 OK' response to all events
-    res.status(200).send("EVENT_RECEIVED");
+    res.status(200).send('EVENT_RECEIVED');
   } else {
     // Return a '404 Not Found' if event is not from a page subscription
     res.sendStatus(404);
   }
 };
+
 let getWebhook = (req, res) => {
   // Parse the query params
-  let mode = req.query["hub.mode"];
-  let token = req.query["hub.verify_token"];
-  let challenge = req.query["hub.challenge"];
+  let mode = req.query['hub.mode'];
+  let token = req.query['hub.verify_token'];
+  let challenge = req.query['hub.challenge'];
 
   // Check if a token and mode is in the query string of the request
   if (mode && token) {
     // Check the mode and token sent is correct
-    if (mode === "subscribe" && token === VERIFY_TOKEN) {
+    if (mode === 'subscribe' && token === VERIFY_TOKEN) {
       // Respond with the challenge token from the request
-      console.log("WEBHOOK_VERIFIED");
-      res.status(200).send(challenge);
-    } else {
-      // Respond with '403 Forbidden' if verify tokens do not match
-      res.sendStatus(403);
+      console.log('WEBHOOK_VERIFIED');
+      res.status(200).send
+
     }
   }
 };
@@ -78,7 +85,8 @@ function handleMessage(sender_psid, received_message) {
     const userMessage = received_message.text;
 
     // Define your prompt for the OpenAI API with the user's message
-    const prompt = `User: ${userMessage}\n`;
+    const prompt = `User: ${userMessage}\n${' '.repeat('User: '.length)}`;
+
 
     // Run the Python script and get the result
     PythonShell.run('../main.py', { pythonPath: 'python', args: [prompt] }, function (err, results) {

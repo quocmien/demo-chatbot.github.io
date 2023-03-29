@@ -1,11 +1,24 @@
-require("dotenv").config;
+require("dotenv").config();
+const { PythonShell } = require('python-shell');
 import request from "request";
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 let getHomePage = (req, res) => {
   return res.send("Xin Chao");
 };
+// Set up your OpenAI API key
+const openai = require('openai');
+openai.api_key = config.OPENAI_API_KEY;
 
+// Define your prompt for the OpenAI API
+const prompt = 'Enter your prompt: ';
+
+// Run the Python script and get the result
+PythonShell.run('../main.py', { pythonPath: 'python', args: [prompt] }, function (err, results) {
+  if (err) throw err;
+  const message = results[0].trim();
+  console.log(message); // Print the generated response
+});
 let postWebhook = (req, res) => {
   // Parse the request body from the POST
   let body = req.body;
@@ -59,20 +72,31 @@ let getWebhook = (req, res) => {
 };
 // Handles messages events
 function handleMessage(sender_psid, received_message) {
-  let response;
-
   // Checks if the message contains text
   if (received_message.text) {
-    // Create the payload for a basic text message, which
-    // will be added to the body of our request to the Send API
-    response = {
-      text: `Xin chào mình có thể giúp gì cho bạn`,
-    };
-  } 
+    // Get the user's message
+    const userMessage = received_message.text;
 
-  // Send the response message
-  callSendAPI(sender_psid, response);
+    // Define your prompt for the OpenAI API with the user's message
+    const prompt = `User: ${userMessage}\n`;
+
+    // Run the Python script and get the result
+    PythonShell.run('../main.py', { pythonPath: 'python', args: [prompt] }, function (err, results) {
+      if (err) throw err;
+      const message = results[0].trim();
+      console.log(message); // Print the generated response
+
+      // Create the payload for the response message
+      const response = {
+        text: message,
+      };
+
+      // Send the response message
+      callSendAPI(sender_psid, response);
+    });
+  } 
 }
+
 
 // Handles messaging_postbacks events
 function handlePostback(sender_psid, received_postback) {

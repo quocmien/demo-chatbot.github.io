@@ -1,7 +1,7 @@
 require("dotenv").config;
 import request from "request";
 const { openai } = require('@openai/api');
-const openai = new openai(process.env.API_KEY);
+const openaiAPI = new openai(process.env.API_KEY);
 
 let getHomePage = (req, res) => {
   return res.send("Xin Chào");

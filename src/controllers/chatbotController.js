@@ -1,10 +1,9 @@
 require("dotenv").config;
 import request from "request";
-const { openai } = require('@openai/api');
-const openaiAPI = new openai(process.env.API_KEY);
+import axios from "axios";
 
 let getHomePage = (req, res) => {
-  return res.send("Xin Chào");
+  return res.send("Xin Chao");
 };
 
 let postWebhook = (req, res) => {
@@ -65,27 +64,56 @@ async function handleMessage(sender_psid, received_message) {
 
   // Checks if the message contains text
   if (received_message.text) {
-    // Call OpenAI's API to get response from GPT-3 model
-    const gptResponse = await openai.completions.create({
-      engine: 'davinci', // or another engine of your choice
-      prompt: received_message.text,
-      maxTokens: 60, // adjust this to control the length of response
-      n: 1,
-      stop: ['\n']
-    });
-
-    // Extract the response text from the OpenAI API response
-    const responseData = gptResponse.choices[0].text.trim();
-    
     // Create the payload for a basic text message, which
     // will be added to the body of our request to the Send API
+    await axios.post('https://modelgptpy.onrender.com/generate', {
+      text: received_message.text
+    }).then((res) => {
+      console.log('res', res.data)
+      response = {
+        text: res.data.data
+      }
+    })
+    .catch((err) => {
+      console.log('err', err)
+    })
+    // response = {
+    //   text: `You sent the message: "${received_message.text}". Now send me an attachment!`,
+    // };
+  } else if (received_message.attachments) {
+    // Get the URL of the message attachment
+    let attachment_url = received_message.attachments[0].payload.url;
     response = {
-      text: responseData
-    }
+      attachment: {
+        type: "template",
+        payload: {
+          template_type: "generic",
+          elements: [
+            {
+              title: "Is this the right picture?",
+              subtitle: "Tap a button to answer.",
+              image_url: attachment_url,
+              buttons: [
+                {
+                  type: "postback",
+                  title: "Yes!",
+                  payload: "yes",
+                },
+                {
+                  type: "postback",
+                  title: "No!",
+                  payload: "no",
+                },
+              ],
+            },
+          ],
+        },
+      },
+    };
   }
 
-  // Sends the response message
-  await callSendAPI(sender_psid, response);
+  // Send the response message
+  callSendAPI(sender_psid, response);
 }
 
 // Handles messaging_postbacks events
